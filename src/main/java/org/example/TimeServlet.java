@@ -2,7 +2,6 @@ package org.example;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,12 +34,22 @@ public class TimeServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
-        String timezoneParam = req.getParameter("timezone");
-        ZoneId zoneId = timezoneParam != null && !timezoneParam.isEmpty()
-                ? ZoneId.of(timezoneParam.replaceAll(" ", "+")) : ZoneId.of("UTC");
+        String timezone = req.getParameter("timezone");
+
+        if (timezone == null) {
+            timezone = CookieUtils.getLastTimezoneCookie(req);
+            if (timezone == null) {
+                timezone = "UTC";
+            }
+        }
+
+        ZoneId zoneId = !timezone.isEmpty()
+                ? ZoneId.of(timezone.replaceAll(" ", "+")) : ZoneId.of("UTC");
         LocalDateTime now = LocalDateTime.now(zoneId);
 
         String formattedDateTime = now.format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+
+        CookieUtils.setLastTimezoneCookie(resp, timezone);
 
         Context context = new Context();
         context.setVariable("timezone", zoneId);
